@@ -150,3 +150,77 @@ kbd {
 #restart-btn:hover {
   background: #9bbdff;
 }
+
+/* ---- Menú de pausa ---- */
+.overlay.paused-menu #restart-btn {
+  display: none;
+}
+
+.pause-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: stretch;
+  min-width: 200px;
+}
+
+.pause-menu.hidden,
+.pause-menu .hidden {
+  display: none;
+}
+
+.menu-btn {
+  background: #22223a;
+  color: #e0e0e0;
+  border: 1px solid #3a3a5a;
+  border-radius: 6px;
+  padding: 9px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.menu-btn:hover {
+  background: #2e2e4c;
+}
+
+.menu-btn.primary {
+  background: #7aa2f7;
+  color: #0f0f17;
+  border: none;
+}
+
+.menu-btn.primary:hover {
+  background: #9bbdff;
+}
+
+.menu-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: #aaa;
+}
+
+.menu-row select {
+  background: #22223a;
+  color: #e0e0e0;
+  border: 1px solid #3a3a5a;
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+
+#pause-controls {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: #888;
+  text-align: left;
+}
+
+#pause-controls.hidden {
+  display: none;
+}

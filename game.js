@@ -106,7 +106,7 @@ function clearLines() {
   if (cleared) {
     lines += cleared;
     score += (LINE_SCORES[cleared] || 0) * level;
-    level = Math.floor(lines / 10) + 1;
+    level = baseLevel + Math.floor(lines / 10);
     dropInterval = Math.max(100, 1000 - (level - 1) * 90);
     updateHUD();
   }
@@ -230,13 +230,13 @@ function togglePause() {
   if (gameOver) return;
   paused = !paused;
   if (!paused) {
+    hidePauseMenu();
+    dropAccum = 0;
     lastTime = performance.now();
     loop(lastTime);
   } else {
     cancelAnimationFrame(animId);
-    overlayTitle.textContent = 'PAUSA';
-    overlayScore.textContent = '';
-    overlay.classList.remove('hidden');
+    showPauseMenu();
   }
 }
 
@@ -260,23 +260,29 @@ function init() {
   board = createBoard();
   score = 0;
   lines = 0;
-  level = 1;
+  baseLevel = startLevel; // fixed for this game; menu changes apply to the next one
+  level = baseLevel;
   paused = false;
   gameOver = false;
-  dropInterval = 1000;
+  dropInterval = Math.max(100, 1000 - (level - 1) * 90);
   dropAccum = 0;
   lastTime = performance.now();
   next = randomPiece();
   spawn();
   updateHUD();
+  hidePauseMenu();
   overlay.classList.add('hidden');
   cancelAnimationFrame(animId);
   animId = requestAnimationFrame(loop);
 }
 
 document.addEventListener('keydown', e => {
-  if (e.code === 'KeyP') { togglePause(); return; }
-  if (paused || gameOver) return;
+  if (e.code === 'KeyP' || e.code === 'Escape') {
+    if (e.repeat) return;
+    togglePause();
+    return;
+  }
+  if (paused || gameOver) return; // all game inputs blocked while the pause menu is open
   switch (e.code) {
     case 'ArrowLeft':
       if (!collide(current.shape, current.x - 1, current.y)) current.x--;
@@ -300,5 +306,47 @@ document.addEventListener('keydown', e => {
 });
 
 restartBtn.addEventListener('click', init);
+
+// ==== PAUSE MENU ====
+// Pause menu lives inside #overlay (shared with game over). startLevel (1-10)
+// is applied by init() for the next game.
+let startLevel = 1;
+let baseLevel = 1; // startLevel captured at init()
+const pauseMenu = document.getElementById('pause-menu');
+const resumeBtn = document.getElementById('resume-btn');
+const pauseRestartBtn = document.getElementById('pause-restart-btn');
+const controlsBtn = document.getElementById('controls-btn');
+const controlsList = document.getElementById('pause-controls');
+const startLevelSel = document.getElementById('start-level');
+
+function showPauseMenu() {
+  overlayTitle.textContent = 'PAUSA';
+  overlayScore.textContent = '';
+  overlay.classList.add('paused-menu');
+  pauseMenu.classList.remove('hidden');
+  controlsList.classList.add('hidden');
+  controlsBtn.setAttribute('aria-expanded', 'false');
+  startLevelSel.value = String(startLevel);
+  overlay.classList.remove('hidden');
+}
+
+function hidePauseMenu() {
+  overlay.classList.remove('paused-menu');
+  pauseMenu.classList.add('hidden');
+  overlay.classList.add('hidden');
+  if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+}
+
+resumeBtn.addEventListener('click', () => { if (paused) togglePause(); });
+pauseRestartBtn.addEventListener('click', init);
+controlsBtn.addEventListener('click', () => {
+  const open = controlsList.classList.toggle('hidden') === false;
+  controlsBtn.setAttribute('aria-expanded', String(open));
+});
+startLevelSel.addEventListener('change', () => {
+  startLevel = Math.min(10, Math.max(1, parseInt(startLevelSel.value, 10) || 1));
+});
+for (let l = 1; l <= 10; l++) startLevelSel.add(new Option(String(l), String(l)));
+// ==== END PAUSE MENU ====
 
 init();
