@@ -150,3 +150,87 @@ kbd {
 #restart-btn:hover {
   background: #9bbdff;
 }
+
+/* ---- Highscores ---- */
+.hs-panel, .hs-entry {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.hs-panel.hidden, .hs-entry.hidden, #restart-btn.hidden {
+  display: none;
+}
+
+.hs-title {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #555570;
+  font-weight: 600;
+}
+
+.hs-table {
+  border-collapse: collapse;
+  font-size: 12px;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.hs-table th {
+  color: #555570;
+  font-size: 10px;
+  padding: 2px 6px;
+}
+
+.hs-table td {
+  padding: 3px 6px;
+  color: #c0c0d0;
+}
+
+.hs-table tr.hs-new td {
+  background: rgba(122, 162, 247, 0.25);
+  color: #fff;
+  font-weight: 700;
+}
+
+.hs-empty {
+  text-align: center;
+  color: #888;
+}
+
+.hs-stats {
+  font-size: 12px;
+  color: #7aa2f7;
+}
+
+.hs-entry p {
+  font-size: 13px;
+  color: #ffd54f;
+}
+
+.hs-entry input {
+  background: #1a1a25;
+  border: 1px solid #3a3a5a;
+  border-radius: 4px;
+  color: #e0e0e0;
+  padding: 6px 10px;
+  text-align: center;
+  user-select: text;
+}
+
+.hs-entry button, .hs-clear {
+  background: #7aa2f7;
+  color: #0f0f17;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.hs-clear {
+  background: transparent;
+  color: #e57373;
+  border: 1px solid #e57373;
+  font-size: 11px;
+}
