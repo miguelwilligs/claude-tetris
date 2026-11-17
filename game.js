@@ -110,6 +110,7 @@ function clearLines() {
     dropInterval = Math.max(100, 1000 - (level - 1) * 90);
     updateHUD();
   }
+  hsTrackLock(cleared);
 }
 
 function ghostY() {
@@ -219,11 +220,13 @@ function drawNext() {
 }
 
 function endGame() {
+  if (gameOver) return;
   gameOver = true;
   cancelAnimationFrame(animId);
   overlayTitle.textContent = 'GAME OVER';
   overlayScore.textContent = `Puntuación: ${score.toLocaleString()}`;
   overlay.classList.remove('hidden');
+  hsOnGameOver();
 }
 
 function togglePause() {
@@ -253,7 +256,7 @@ function loop(ts) {
     }
   }
   draw();
-  animId = requestAnimationFrame(loop);
+  if (!gameOver) animId = requestAnimationFrame(loop);
 }
 
 function init() {
@@ -270,11 +273,13 @@ function init() {
   spawn();
   updateHUD();
   overlay.classList.add('hidden');
+  hsOnInit();
   cancelAnimationFrame(animId);
   animId = requestAnimationFrame(loop);
 }
 
 document.addEventListener('keydown', e => {
+  if (e.target && e.target.tagName === 'INPUT') return;
   if (e.code === 'KeyP') { togglePause(); return; }
   if (paused || gameOver) return;
   switch (e.code) {
@@ -301,4 +306,175 @@ document.addEventListener('keydown', e => {
 
 restartBtn.addEventListener('click', init);
 
-init();
+// ==== HIGHSCORES ====
+const HS_KEY = 'tetris.highscores';
+const STATS_KEY = 'tetris.stats';
+const HS_MAX = 5;
+const hsPanel = document.getElementById('hs-panel');
+const hsBody = document.getElementById('hs-body');
+const hsStatsEl = document.getElementById('hs-stats');
+const hsEntry = document.getElementById('hs-entry');
+const hsName = document.getElementById('hs-name');
+const hsSave = document.getElementById('hs-save');
+const hsClear = document.getElementById('hs-clear');
+
+let combo = 0;
+let runBestCombo = 0;
+let pendingEntry = null; // score waiting for a name
+let hsHighlight = null;  // saved entry to highlight
+
+function hsLoad() {
+  try {
+    const arr = JSON.parse(localStorage.getItem(HS_KEY));
+    if (Array.isArray(arr)) {
+      return arr
+        .filter(e => e && typeof e.score === 'number')
+        .map(e => ({
+          name: String(e.name ?? 'Anónimo'),
+          score: e.score,
+          lines: Number(e.lines) || 0,
+          level: Number(e.level) || 1,
+          date: String(e.date ?? ''),
+        }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, HS_MAX);
+    }
+  } catch (e) { /* ignore */ }
+  return [];
+}
+
+function hsStore(list) {
+  try { localStorage.setItem(HS_KEY, JSON.stringify(list)); } catch (e) { /* ignore */ }
+}
+
+function statsLoad() {
+  try {
+    const o = JSON.parse(localStorage.getItem(STATS_KEY));
+    if (o && typeof o === 'object') {
+      return { bestCombo: Number(o.bestCombo) || 0, maxLines: Number(o.maxLines) || 0 };
+    }
+  } catch (e) { /* ignore */ }
+  return { bestCombo: 0, maxLines: 0 };
+}
+
+function statsStore(st) {
+  try { localStorage.setItem(STATS_KEY, JSON.stringify(st)); } catch (e) { /* ignore */ }
+}
+
+function hsQualifies(sc) {
+  if (sc <= 0) return false;
+  const list = hsLoad();
+  return list.length < HS_MAX || sc > list[list.length - 1].score;
+}
+
+function hsRender() {
+  const list = hsLoad();
+  hsBody.textContent = '';
+  if (!list.length) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 5;
+    td.className = 'hs-empty';
+    td.textContent = 'Sin records todavía';
+    tr.appendChild(td);
+    hsBody.appendChild(tr);
+  }
+  list.forEach((e, i) => {
+    const tr = document.createElement('tr');
+    if (hsHighlight && e.date === hsHighlight.date && e.score === hsHighlight.score && e.name === hsHighlight.name) {
+      tr.className = 'hs-new';
+    }
+    [i + 1, e.name, e.score.toLocaleString(), e.lines, e.level].forEach(v => {
+      const td = document.createElement('td');
+      td.textContent = v;
+      tr.appendChild(td);
+    });
+    hsBody.appendChild(tr);
+  });
+  const st = statsLoad();
+  hsStatsEl.textContent = `Mejor combo: ${st.bestCombo} · Máx. líneas: ${st.maxLines}`;
+}
+
+function hsShow() {
+  hsRender();
+  hsPanel.classList.remove('hidden');
+}
+
+function hsTrackLock(cleared) {
+  if (cleared) {
+    combo++;
+    if (combo > runBestCombo) runBestCombo = combo;
+  } else {
+    combo = 0;
+  }
+}
+
+function hsOnInit() {
+  combo = 0;
+  runBestCombo = 0;
+  pendingEntry = null;
+  hsHighlight = null;
+  hsPanel.classList.add('hidden');
+  hsEntry.classList.add('hidden');
+  restartBtn.classList.remove('hidden');
+  restartBtn.textContent = 'Reiniciar';
+}
+
+function hsOnGameOver() {
+  const st = statsLoad();
+  st.bestCombo = Math.max(st.bestCombo, runBestCombo);
+  st.maxLines = Math.max(st.maxLines, lines);
+  statsStore(st);
+  hsShow();
+  if (hsQualifies(score)) {
+    pendingEntry = { score, lines, level };
+    hsEntry.classList.remove('hidden');
+    restartBtn.classList.add('hidden');
+    hsName.value = '';
+    hsName.focus();
+  }
+}
+
+function hsSubmit() {
+  if (!pendingEntry) return;
+  const entry = {
+    name: hsName.value.trim().slice(0, 12) || 'Anónimo',
+    score: pendingEntry.score,
+    lines: pendingEntry.lines,
+    level: pendingEntry.level,
+    date: new Date().toISOString(),
+  };
+  pendingEntry = null;
+  const list = hsLoad();
+  list.push(entry);
+  list.sort((a, b) => b.score - a.score);
+  hsStore(list.slice(0, HS_MAX));
+  hsHighlight = entry;
+  hsEntry.classList.add('hidden');
+  restartBtn.classList.remove('hidden');
+  hsShow();
+}
+
+hsSave.addEventListener('click', hsSubmit);
+hsName.addEventListener('keydown', e => { if (e.key === 'Enter') hsSubmit(); });
+hsClear.addEventListener('click', () => {
+  if (!confirm('¿Borrar todos los records?')) return;
+  try {
+    localStorage.removeItem(HS_KEY);
+    localStorage.removeItem(STATS_KEY);
+  } catch (e) { /* ignore */ }
+  hsHighlight = null;
+  hsRender();
+});
+
+function showStart() {
+  gameOver = true; // blocks input until the first game starts
+  paused = false;
+  overlayTitle.textContent = 'TETRIS';
+  overlayScore.textContent = '';
+  restartBtn.textContent = 'Jugar';
+  overlay.classList.remove('hidden');
+  hsShow();
+}
+
+showStart();
