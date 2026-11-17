@@ -150,3 +150,18 @@ kbd {
 #restart-btn:hover {
   background: #9bbdff;
 }
+
+/* ---- Skins ---- */
+.skin-picker select {
+  background: #22223a;
+  color: #ccc;
+  border: 1px solid #3a3a5a;
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-size: 12px;
+}
+
+body[data-skin="pastel"] #board,
+body[data-skin="pastel"] #next-canvas { border-color: #e3d3c6; }
+body[data-skin="neon"] #board,
+body[data-skin="neon"] #next-canvas { border-color: #00f0ff55; box-shadow: 0 0 18px #00f0ff33; }
